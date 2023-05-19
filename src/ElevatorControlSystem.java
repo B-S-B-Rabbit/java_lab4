@@ -1,24 +1,50 @@
 import java.util.*;
 import java.util.concurrent.*;
 
+/**
+ * Система управления лифтами.
+ * @author Андрей Помошников
+ * @version 1.0
+ */
 public class ElevatorControlSystem {
-        private static ConcurrentLinkedQueue<Call> calls = new ConcurrentLinkedQueue<>();
-        private static List<Elevator> elevators = new ArrayList<>();
-        private static int maxFloor = 10;
-        private static int minFloor = 1;
+    /**
+     * Очередь вызовов лифтов.
+     */
+    private static ConcurrentLinkedQueue<Call> calls = new ConcurrentLinkedQueue<>();
 
-    public ElevatorControlSystem(Elevator lift1, Elevator lift2){
+    /**
+     * Список лифтов.
+     */
+    private static List<Elevator> elevators = new ArrayList<>();
+
+
+    /**
+     * Конструктор класса ElevatorControlSystem.
+     *
+     * @param lift1 Первый лифт
+     * @param lift2 Второй лифт
+     */
+    public ElevatorControlSystem(Elevator lift1, Elevator lift2) {
         elevators.add(lift1);
         elevators.add(lift2);
     }
 
-    public static void addCall(Call call) {
+    /**
+     * Добавляет вызов лифта.
+     *
+     * @param call Вызов лифта
+     */
+    public static synchronized  void addCall(Call call) {
         calls.offer(call);
-        System.out.println("Call added: " + call.getFloor() + " " + call.getDirection() + " " + call.getDestination());
         assignElevator(call);
     }
 
-    private static void assignElevator(Call call) {
+    /**
+     * Назначает лифт для обработки вызова.
+     *
+     * @param call Вызов лифта
+     */
+    private static synchronized  void assignElevator(Call call) {
         Elevator closestElevator = null;
         int closestDistance = Integer.MAX_VALUE;
         for (Elevator elevator : elevators) {
@@ -27,82 +53,43 @@ public class ElevatorControlSystem {
                     closestElevator = elevator;
                     closestDistance = elevator.distanceFrom(call.getFloor());
                 }
-            }
-            else if (elevator.getDirection() == Direction.UP) {
+            } else if (elevator.getDirection() == Direction.UP) {
                 if (call.getFloor() >= elevator.getCurrentFloor() && call.getDirection() == Direction.UP) {
                     if (closestDistance > elevator.distanceFrom(call.getFloor())) {
                         closestElevator = elevator;
                         closestDistance = elevator.distanceFrom(call.getFloor());
                     }
-                }
-                else if ((call.getFloor() >= elevator.getCurrentFloor() && call.getDirection() == Direction.DOWN))
-                {
+                } else {
                     if (closestDistance > elevator.distanceDestFromUP(call.getFloor())) {
                         closestElevator = elevator;
                         closestDistance = elevator.distanceFrom(call.getFloor());
                     }
                 }
-                else if ((call.getFloor() < elevator.getCurrentFloor() && call.getDirection() == Direction.UP))
-                {
-                    if (closestDistance > elevator.distanceDestFromUP(call.getFloor())) {
-                        closestElevator = elevator;
-                        closestDistance = elevator.distanceFrom(call.getFloor());
-                    }
-                }
-                else if ((call.getFloor() < elevator.getCurrentFloor() && call.getDirection() == Direction.DOWN))
-                {
-                    if (closestDistance > elevator.distanceDestFromUP(call.getFloor())) {
-                        closestElevator = elevator;
-                        closestDistance = elevator.distanceFrom(call.getFloor());
-                    }
-                }
-            }
-            else if (elevator.getDirection() == Direction.DOWN) {
+            } else if (elevator.getDirection() == Direction.DOWN) {
                 if (call.getFloor() <= elevator.getCurrentFloor() && call.getDirection() == Direction.DOWN) {
                     if (closestDistance > elevator.distanceFrom(call.getFloor())) {
                         closestElevator = elevator;
                         closestDistance = elevator.distanceFrom(call.getFloor());
                     }
-                }
-                else if ((call.getFloor() <= elevator.getCurrentFloor() && call.getDirection() == Direction.UP))
-                {
-                    if (closestDistance > elevator.distanceDestFromDown(call.getFloor())) {
-                        closestElevator = elevator;
-                        closestDistance = elevator.distanceFrom(call.getFloor());
-                    }
-                }
-                else if ((call.getFloor() > elevator.getCurrentFloor() && call.getDirection() == Direction.UP))
-                {
-                    if (closestDistance > elevator.distanceDestFromDown(call.getFloor())) {
-                        closestElevator = elevator;
-                        closestDistance = elevator.distanceFrom(call.getFloor());
-                    }
-                }
-                else if ((call.getFloor() > elevator.getCurrentFloor() && call.getDirection() == Direction.DOWN))
-                {
+                } else {
                     if (closestDistance > elevator.distanceDestFromDown(call.getFloor())) {
                         closestElevator = elevator;
                         closestDistance = elevator.distanceFrom(call.getFloor());
                     }
                 }
             }
-        }
 
-        if (closestElevator != null) {
-            closestElevator.addDestination(call.getFloor());
-            if (closestElevator.getDirection() == Direction.STOP)
-            {
-                if (call.getFloor() >= closestElevator.getCurrentFloor())
-                {
-                    closestElevator.setDirection(Direction.UP);
+            if (closestElevator != null) {
+                closestElevator.addDestination(call.getFloor());
+                if (closestElevator.getDirection() == Direction.STOP) {
+                    if (call.getFloor() >= closestElevator.getCurrentFloor()) {
+                        closestElevator.setDirection(Direction.UP);
+                    } else {
+                        closestElevator.setDirection(Direction.DOWN);
+                    }
                 }
-                else {
-                    closestElevator.setDirection(Direction.DOWN);
-
-                }
+                closestElevator.addToMap(call.getFloor(), call.getDestination());
             }
-            closestElevator.addToMap(call.getFloor(), call.getDestination());
-            System.out.println("Call assigned to elevator " + closestElevator.id);
         }
     }
 }

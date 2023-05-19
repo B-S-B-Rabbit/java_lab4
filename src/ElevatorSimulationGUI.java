@@ -1,28 +1,79 @@
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.Random;
 import java.util.Timer;
+import java.util.TimerTask;
 
+/**
+ * Графический интерфейс для симуляции работы лифтов.
+ * @author Андрей Помошников
+ * @version 1.0
+ */
 public class ElevatorSimulationGUI extends JFrame {
+    /**
+     * Панель лифта 1.
+     */
     private ElevatorPanel elevatorPanel1;
+
+    /**
+     * Панель лифта 2.
+     */
     private ElevatorPanel elevatorPanel2;
+
+    /**
+     * Кнопка "Старт".
+     */
     private JButton startButton;
+
+    /**
+     * Слайдер для выбора интервала.
+     */
     private JSlider intervalSlider;
+
+    /**
+     * Слайдер для выбора количества запросов.
+     */
     private JSlider requestsSlider;
+
+    /**
+     * Метка с текущим этажом для лифта 1.
+     */
     private JLabel floorLabel1;
+
+    /**
+     * Метка с текущим этажом для лифта 2.
+     */
     private JLabel floorLabel2;
+
+    /**
+     * Интервал между запросами (в секундах).
+     */
     private int interval;
+
+    /**
+     * Количество запросов.
+     */
     private int numRequests;
-    private  Elevator lift1;
-    private  Elevator lift2;
-    private boolean elevator1Open;
-    private boolean elevator2Open;
-    private int elevator1Floor;
-    private int elevator2Floor;
+
+    /**
+     * Лифт 1.
+     */
+    private Elevator lift1;
+
+    /**
+     * Лифт 2.
+     */
+    private Elevator lift2;
+
+    /**
+     * Флаг, указывающий, запущена ли симуляция.
+     */
     private boolean isRun;
 
+
+    /**
+     * Конструктор класса ElevatorSimulationGUI.
+     */
     public ElevatorSimulationGUI() {
         setTitle("Elevator Simulation");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -81,120 +132,168 @@ public class ElevatorSimulationGUI extends JFrame {
         thread2.start();
     }
 
+    /**
+     * Создает панель для отображения лифта.
+     *
+     * @return Объект ElevatorPanel
+     */
     private ElevatorPanel createElevatorPanel() {
         ElevatorPanel elevatorPanel = new ElevatorPanel();
-        elevatorPanel.setPreferredSize(new Dimension(100, 200));
+        elevatorPanel.setPreferredSize(new Dimension(100, 300));
         elevatorPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
         return elevatorPanel;
     }
 
+    /**
+     * Запускает симуляцию работы лифтов.
+     */
     private void startSimulation() {
+
         new Thread(new ElevatorSimulationRunnable(elevatorPanel1)).start();
         new Thread(new ElevatorSimulationRunnable(elevatorPanel2)).start();
+
         isRun = true;
-        interval = intervalSlider.getValue() * 1000; // Convert to milliseconds
+        interval = intervalSlider.getValue() * 1000; // Преобразование в миллисекунды
         numRequests = requestsSlider.getValue();
-        Random random = new Random();
-        int flr = 0;
-        int dst = 0;
-        Direction dr = Direction.STOP;
-        for (int i = 0; i < numRequests; ++i) {
-            flr = random.nextInt(15) + 1;
-            do {
-                dst = random.nextInt(15) + 1;
-            } while (dst == flr);
-            if (flr > dst) {
-                dr = Direction.DOWN;
-            } else {
-                dr = Direction.UP;
+        Timer timer = new Timer();
+        timer.schedule(new TimerTask() {
+            private int count = 0;
+            private final Random random = new Random();
+
+            @Override
+            public void run() {
+                int flr = random.nextInt(15) + 1;
+                int dst;
+                Direction dr;
+
+                do {
+                    dst = random.nextInt(15) + 1;
+                } while (dst == flr);
+
+                if (flr > dst) {
+                    dr = Direction.DOWN;
+                } else {
+                    dr = Direction.UP;
+                }
+                try {
+                    ElevatorControlSystem.addCall(new Call(flr, dr, dst));
+                }
+                catch (Exception ignored)
+                {}
+                count++;
+                if (count >= numRequests) {
+                    // Остановить таймер после добавления всех вызовов
+                    timer.cancel();
+                }
             }
-            ElevatorControlSystem.addCall(new Call(flr, dr, dst));
-        }
-        // TODO: Start the elevator simulation with the specified interval and number of requests
-
-
+        }, 0, interval);
     }
 
+    /**
+     * Внутренний класс для выполнения симуляции лифта в отдельном потоке.
+     */
     private class ElevatorSimulationRunnable implements Runnable {
         private ElevatorPanel elevatorPanel;
 
+        /**
+         * Конструктор класса ElevatorSimulationRunnable.
+         *
+         * @param elevatorPanel Панель лифта
+         */
         public ElevatorSimulationRunnable(ElevatorPanel elevatorPanel) {
             this.elevatorPanel = elevatorPanel;
         }
 
         @Override
         public void run() {
-            while (isRun)
-            {
+            while (isRun) {
                 try {
                     Thread.sleep(1000); // ждем 1 секунду перед перемещением на следующий этаж
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(elevatorPanel, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
                 }
-                    elevatorPanel1.setFloor(lift1.getCurrentFloor());
-                    elevatorPanel2.setFloor(lift2.getCurrentFloor());
-
+                elevatorPanel1.setFloor(lift1.getCurrentFloor());
+                elevatorPanel2.setFloor(lift2.getCurrentFloor());
+                elevatorPanel1.open = lift1.getOpenStatus();
+                elevatorPanel2.open = lift2.getOpenStatus();
             }
         }
     }
 
+    /**
+     * Панель для отображения состояния лифта.
+     */
+    static class ElevatorPanel extends JPanel {
+        /**
+         * Флаг открытия дверей лифта.
+         */
+        private boolean open;
 
- class ElevatorPanel extends JPanel {
-    private boolean open;
-    private int floor;
+        /**
+         * Этаж, на котором находится лифт. По умолчанию - 1.
+         */
+        private int floor = 1;
 
-    public void setFloor(int floor) {
-        this.floor = floor;
-        repaint();
-    }
-    @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        Graphics2D g2d = (Graphics2D) g.create();
 
-        int width = getWidth();
-        int height = getHeight();
-
-        // Draw the elevator car body
-        g2d.setColor(Color.GRAY);
-        g2d.fillRect(0, 0, width, height);
-
-        if (open) {
-            // Draw the open doors
-            g2d.setColor(Color.ORANGE);
-            g2d.fillRect(0, 0, width / 2, height);
-            g2d.fillRect(width / 2, 0, width / 2, height);
-        } else {
-            // Draw the closed doors
-            g2d.setColor(Color.DARK_GRAY);
-            g2d.fillRect(0, 0, width / 2, height);
-            g2d.fillRect(width / 2, 0, width / 2, height);
+        /**
+         * Устанавливает текущий этаж.
+         *
+         * @param floor Этаж
+         */
+        public void setFloor(int floor) {
+            this.floor = floor;
+            repaint();
         }
 
-        // Add additional 3D effects (shadows, highlights) to make the elevator panel look more realistic
-        int shadowWidth = width / 10;
-        int highlightWidth = width / 15;
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2d = (Graphics2D) g.create();
 
-        // Draw shadows
-        g2d.setColor(new Color(0, 0, 0, 64));
-        g2d.fillRect(0, 0, shadowWidth, height);
-        g2d.fillRect(width - shadowWidth, 0, shadowWidth, height);
+            int width = getWidth();
+            int height = getHeight();
 
-        // Draw highlights
-        g2d.setColor(new Color(255, 255, 255, 64));
-        g2d.fillRect(shadowWidth, 0, highlightWidth, height);
-        g2d.fillRect(width - shadowWidth - highlightWidth, 0, highlightWidth, height);
+            // Рисуем корпус лифта
+            g2d.setColor(Color.GRAY);
+            g2d.fillRect(0, 0, width, height);
 
-        // Draw the floor number dynamically
-        g2d.setColor(Color.WHITE);
-        g2d.setFont(new Font("Arial", Font.BOLD, 14));
-        String floorText = "Floor: " + floor;
-        FontMetrics fm = g2d.getFontMetrics();
-        int textWidth = fm.stringWidth(floorText);
-        int textX = (width - textWidth) / 2;
-        int textY = fm.getAscent();
-        g2d.drawString(floorText, textX, textY);
+            if (open) {
+                // Рисуем открытые двери
+                g2d.setColor(Color.RED);
+                g2d.fillRect(0, 0, width / 2, height);
+                g2d.fillRect(width / 2, 0, width / 2, height);
+            } else {
+                // Рисуем закрытые двери
+                g2d.setColor(Color.DARK_GRAY);
+                g2d.fillRect(0, 0, width / 2, height);
+                g2d.fillRect(width / 2, 0, width / 2, height);
+            }
 
-        g2d.dispose();
+            // Добавляем дополнительные 2D-эффекты (тени, подсветки), чтобы панель лифта выглядела более реалистичной
+            int shadowWidth = width / 10;
+            int highlightWidth = width / 15;
+
+            // Рисуем тени
+            g2d.setColor(new Color(0, 0, 0, 64));
+            g2d.fillRect(0, 0, shadowWidth, height);
+            g2d.fillRect(width - shadowWidth, 0, shadowWidth, height);
+
+            // Рисуем подсветки
+            g2d.setColor(new Color(255, 255, 255, 64));
+            g2d.fillRect(shadowWidth, 0, highlightWidth, height);
+            g2d.fillRect(width - shadowWidth - highlightWidth, 0, highlightWidth, height);
+
+            // Рисуем номер этажа динамически
+            g2d.setColor(Color.WHITE);
+            g2d.setFont(new Font("Courier New", Font.BOLD, 24));
+            String floorText = "Floor: " + floor;
+            FontMetrics fm = g2d.getFontMetrics();
+            int textWidth = fm.stringWidth(floorText);
+            int textX = (width - textWidth) / 2;
+            int textY = fm.getAscent();
+            g2d.drawString(floorText, textX, textY);
+
+            g2d.dispose();
+        }
     }
-}}
+}
