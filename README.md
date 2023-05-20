@@ -8,7 +8,7 @@
 2. [Изображения](#Изображения)
 
 ## Основное
-### Видео работы программы:![bandicam 2023-05-20 12-11-14-862 (1).gif](..%2F..%2Funtitled5%2Fbandicam%202023-05-20%2012-11-14-862%20%281%29.gif)
+### Видео работы программы:![working](images/3.gif)
 ____
 - Call, Elevator, ElevatorControlSystem, ElevatorSimulationGUI классы, поддерживающие операции:
     - Выбор интервала между заявками
@@ -29,11 +29,13 @@ ____
 ## Примеры кода
 Конструктор с параметрами класса(этаж, направления, этаж назначения) `Call`:
 ```Java
-public Call(int floor, Direction direction, int destination) {
-        this.floor = floor;
-        this.direction = direction;
-        this.destination = destination;
-    }
+public class Call {
+  public Call(int floor, Direction direction, int destination) {
+    this.floor = floor;
+    this.direction = direction;
+    this.destination = destination;
+  }
+}
 ```
 ____
 Конструктор с параметрами класса(идентификатор, текущий этаж, направление, запущен, массивы этажей) `Elevator`:
