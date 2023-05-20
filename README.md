@@ -8,7 +8,7 @@
 2. [Изображения](#Изображения)
 
 ## Основное
-### Видео работы программы: https://drive.google.com/file/d/1bw1w2Xo-0yAf7MjpMX_LLvZskg8GzmcI/view?usp=share_link
+### Видео работы программы:![bandicam 2023-05-20 12-11-14-862 (1).gif](..%2F..%2Funtitled5%2Fbandicam%202023-05-20%2012-11-14-862%20%281%29.gif)
 ____
 - Call, Elevator, ElevatorControlSystem, ElevatorSimulationGUI классы, поддерживающие операции:
     - Выбор интервала между заявками
